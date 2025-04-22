@@ -9,8 +9,11 @@ from .fallback_playwright import fallback_playwright_fetch
 from .primp import Client, Response
 
 
-def fetch(params: dict) -> Response:
+def fetch(params: dict, proxy: str) -> Response:
     client = Client(impersonate="chrome_126", verify=False)
+    if proxy:
+        client.proxy = proxy
+
     res = client.get("https://www.google.com/travel/flights", params=params)
     assert res.status_code == 200, f"{res.status_code} Result: {res.text_markdown}"
     return res
@@ -21,6 +24,7 @@ def get_flights_from_filter(
     currency: str = "",
     *,
     mode: Literal["common", "fallback", "force-fallback", "local"] = "common",
+    proxy=None,
 ) -> Result:
     data = filter.as_b64()
 
@@ -33,7 +37,7 @@ def get_flights_from_filter(
 
     if mode in {"common", "fallback"}:
         try:
-            res = fetch(params)
+            res = fetch(params, proxy)
         except AssertionError as e:
             if mode == "fallback":
                 res = fallback_playwright_fetch(params)
@@ -64,6 +68,7 @@ def get_flights(
     seat: Literal["economy", "premium-economy", "business", "first"],
     fetch_mode: Literal["common", "fallback", "force-fallback", "local"] = "common",
     max_stops: Optional[int] = None,
+    proxy: str = None
 ) -> Result:
     return get_flights_from_filter(
         TFSData.from_interface(
@@ -74,6 +79,7 @@ def get_flights(
             max_stops=max_stops,
         ),
         mode=fetch_mode,
+        proxy=proxy,
     )
 
 
